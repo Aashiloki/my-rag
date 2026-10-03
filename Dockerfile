@@ -1,7 +1,7 @@
 # Dockerfile — Phase 7: containerise the RAG app
 #
 # WHAT YOU LEARN HERE:
-# - Multi-stage thinking: why we use python:3.11-slim not python:3.11
+# - Multi-stage thinking: why we use a slim Python image
 # - Layer caching: why requirements.txt is copied BEFORE the app code
 # - Non-root user: basic container security practice
 # - CMD vs ENTRYPOINT: CMD is the default, overridable at runtime
@@ -10,10 +10,10 @@
 # RUN:    docker run -p 8000:8000 --env-file .env my-rag
 
 # ── Base image ─────────────────────────────────────────────────────────────────
-# python:3.11-slim = Python 3.11 on Debian with minimal extras (~150 MB).
-# Avoids the full python:3.11 image (~900 MB) which includes compilers,
+# python:3.12-slim = Python 3.12 on Debian with minimal extras.
+# Avoids the full python:3.12 image which includes compilers,
 # build tools, and dozens of libraries you don't need at runtime.
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 # ── System deps ────────────────────────────────────────────────────────────────
 # PyMuPDF (fitz) needs libGL and libglib at runtime.
