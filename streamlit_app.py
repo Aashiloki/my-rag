@@ -15,14 +15,23 @@ your deployed backend URL, not localhost.
 """
 
 import streamlit as st
+from streamlit.errors import StreamlitSecretNotFoundError
 import requests
 import os
 
 # ─── CONFIG ────────────────────────────────────────────────────────────────────
 # LEARNING: os.environ.get() reads env vars — works both locally (.env)
 # and on Streamlit Cloud (set in their Secrets UI).
-# Fallback to localhost for local dev.
-API_BASE = os.environ.get("API_BASE", "http://localhost:8000")
+# Secrets or environment variables can override the deployed backend URL.
+try:
+    API_BASE = st.secrets.get("API_BASE")
+except StreamlitSecretNotFoundError:
+    API_BASE = None
+API_BASE = (
+    API_BASE
+    or os.environ.get("API_BASE")
+    or "https://my-rag-production.up.railway.app"
+).rstrip("/")
 
 st.set_page_config(page_title="RAG Chatbot", page_icon="🔍", layout="wide")
 
