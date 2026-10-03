@@ -1,5 +1,9 @@
 # Resume RAG
 
+## Live app
+
+[Open the RAG Chatbot](https://my-rag-chatbot-anonymous.streamlit.app)
+
 ## Retrieval chunk-size experiment
 
 Measured on the six eligible resume PDFs in `documents/` using 30 labeled questions (five per PDF). A question counts as a hit when at least one of the top five retrieved chunks comes from the expected PDF and contains all of that question's expected evidence phrases.
