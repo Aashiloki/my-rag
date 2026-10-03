@@ -178,7 +178,7 @@ def stats():
 # ─── ENTRY POINT ───────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.environ.get("PORT") or 8000)
+    port = int(os.environ["PORT"])
     print("Starting Phase 3 RAG server...")
     print(f"Docs: http://localhost:{port}/docs")
     uvicorn.run("main:app", host="0.0.0.0", port=port, reload=not bool(os.environ.get("PORT")))
