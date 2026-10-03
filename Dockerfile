@@ -59,4 +59,4 @@ EXPOSE 8000
 #                  (127.0.0.1 would only accept connections from inside the container)
 # --workers 1    : single worker is fine for a portfolio project
 # no --reload    : reload is for development only, not production
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+CMD ["sh", "-c", "exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1"]
