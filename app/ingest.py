@@ -42,8 +42,15 @@ OVERLAP       = int(os.environ.get("OVERLAP", 50))
 BM25_PATH     = os.path.join(os.path.dirname(__file__), "..", "bm25_index.pkl")
 
 print(f"[ingest] Config: chunk_size={CHUNK_SIZE}, overlap={OVERLAP}")
-print("[ingest] Loading embedding model...")
-embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+_embedding_model = None
+
+
+def _get_embedding_model():
+    global _embedding_model
+    if _embedding_model is None:
+        print("[ingest] Loading embedding model...")
+        _embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+    return _embedding_model
 
 
 # ─── PDF READING ───────────────────────────────────────────────────────────────
@@ -115,6 +122,7 @@ def ingest_documents():
             })
 
     print(f"[ingest] Embedding {len(all_chunks)} chunks...")
+    embedding_model = _get_embedding_model()
     embeddings = embedding_model.encode(all_chunks, show_progress_bar=True)
 
     # ── Write to Qdrant ────────────────────────────────────────────────────────

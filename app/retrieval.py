@@ -50,14 +50,30 @@ CANDIDATE_K     = 20    # fetch this many from each source before re-ranking
 FINAL_K         = 5     # return this many after re-ranking
 RRF_K           = 60    # RRF constant — controls how much rank matters vs score
 
-# ─── LOAD MODELS ───────────────────────────────────────────────────────────────
-print("[retrieval] Loading bi-encoder (embedding model)...")
-bi_encoder = SentenceTransformer("all-MiniLM-L6-v2")
+# ─── LAZY MODEL LOADING ───────────────────────────────────────────────────────
+# Railway containers can crash or time out if we try to download/initialize
+# these heavy models at import time. We only create them when a request
+# actually needs them.
+_bi_encoder = None
+_cross_encoder = None
 
-print("[retrieval] Loading cross-encoder (re-ranker)...")
-# ms-marco-MiniLM-L-6-v2: trained specifically for passage re-ranking.
-# Downloads ~80 MB once, then cached. Free, runs locally.
-cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+
+def _get_bi_encoder():
+    global _bi_encoder
+    if _bi_encoder is None:
+        print("[retrieval] Loading bi-encoder (embedding model)...")
+        _bi_encoder = SentenceTransformer("all-MiniLM-L6-v2")
+    return _bi_encoder
+
+
+def _get_cross_encoder():
+    global _cross_encoder
+    if _cross_encoder is None:
+        print("[retrieval] Loading cross-encoder (re-ranker)...")
+        # ms-marco-MiniLM-L-6-v2: trained specifically for passage re-ranking.
+        # Downloads ~80 MB once, then cached. Free, runs locally.
+        _cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+    return _cross_encoder
 
 
 # ─── LOAD BM25 INDEX ───────────────────────────────────────────────────────────
@@ -107,8 +123,9 @@ def retrieve(query: str, top_k: int = FINAL_K) -> list[dict]:
         print("[retrieval] ❌  Run ingest first.")
         return []
 
-    query_vector    = bi_encoder.encode(query).tolist()
-    vector_results  = client.search(
+    bi_encoder = _get_bi_encoder()
+    query_vector = bi_encoder.encode(query).tolist()
+    vector_results = client.search(
         collection_name = COLLECTION_NAME,
         query_vector    = query_vector,
         limit           = CANDIDATE_K,
@@ -152,9 +169,10 @@ def retrieve(query: str, top_k: int = FINAL_K) -> list[dict]:
     # ── 4. Cross-encoder re-ranking ───────────────────────────────────────────
     # LEARNING: CrossEncoder.predict() takes a list of [query, passage] pairs.
     # It processes them all in one batched forward pass — efficient.
+    cross_encoder = _get_cross_encoder()
     candidates = [id_to_payload[cid].get("text", "") for cid in merged_ids]
-    pairs      = [[query, text] for text in candidates]
-    ce_scores  = cross_encoder.predict(pairs)
+    pairs = [[query, text] for text in candidates]
+    ce_scores = cross_encoder.predict(pairs)
 
     # Sort by cross-encoder score (higher = more relevant)
     reranked = sorted(
