@@ -1,0 +1,29 @@
+# PDF reading
+pymupdf==1.24.5
+
+# Embeddings (local, free)
+sentence-transformers==3.0.1
+
+# Vector DB
+qdrant-client==1.10.1
+
+# BM25 keyword search (Phase 3 — hybrid retrieval)
+rank-bm25==0.2.2
+
+# Cross-encoder re-ranking (Phase 3)
+# uses sentence-transformers — no extra install needed
+
+# LLM API
+# Groq 0.9.0 expects httpx<0.28; newer httpx removed the `proxies` argument.
+groq==0.9.0
+httpx<0.28
+
+# Web framework
+fastapi==0.111.0
+starlette==0.37.2
+uvicorn==0.30.1
+python-multipart==0.0.9
+pydantic==2.7.4
+
+# Env vars
+python-dotenv==1.0.1

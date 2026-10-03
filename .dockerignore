@@ -1,0 +1,34 @@
+# Never copy these into the Docker image
+
+# Local virtual environment — huge, wrong Python version
+venv/
+.venv/
+
+# Vector DB data — gets rebuilt via POST /ingest inside the container
+qdrant_db/
+chroma_db/
+
+# BM25 index — same, rebuilt on ingest
+bm25_index.pkl
+
+# Python cache — not needed
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Secrets — NEVER bake these into an image
+.env
+
+# Git history — not needed at runtime
+.git/
+.gitignore
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db

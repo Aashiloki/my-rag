@@ -1,0 +1,26 @@
+# Secrets
+.env
+
+# Vector DB — too large for git, rebuilt on deploy
+qdrant_db/
+chroma_db/
+bm25_index.pkl
+
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db

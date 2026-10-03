@@ -1,0 +1,41 @@
+{
+  "_instructions": "Fill in 30 questions from YOUR documents. Each needs: question, expected_answer (key phrases that should appear in the answer), and answerable (true/false). The 30 questions should be: 20 answerable from your PDFs, 10 unanswerable (to test refusal). Replace all the examples below with real questions from your actual PDFs.",
+
+  "questions": [
+    {
+      "id": 1,
+      "question": "What is osmosis?",
+      "expected_keywords": ["water", "membrane", "concentration"],
+      "answerable": true,
+      "source_file": "biology.pdf"
+    },
+    {
+      "id": 2,
+      "question": "Define photosynthesis.",
+      "expected_keywords": ["light", "glucose", "chlorophyll"],
+      "answerable": true,
+      "source_file": "biology.pdf"
+    },
+    {
+      "id": 3,
+      "question": "What is Newton's second law?",
+      "expected_keywords": ["force", "mass", "acceleration"],
+      "answerable": true,
+      "source_file": "physics.pdf"
+    },
+    {
+      "id": 4,
+      "question": "What was the GDP of France in 2023?",
+      "expected_keywords": [],
+      "answerable": false,
+      "source_file": null
+    },
+    {
+      "id": 5,
+      "question": "Who won the 2024 FIFA World Cup?",
+      "expected_keywords": [],
+      "answerable": false,
+      "source_file": null
+    }
+  ]
+}
