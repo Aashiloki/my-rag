@@ -1,12 +1,75 @@
-[
-  "What is the GDP of France?",
-  "Who wrote Hamlet?",
-  "What is the average distance from Earth to the Moon?",
-  "What is the boiling point of water at sea level?",
-  "Which city is the capital of Japan?",
-  "What year did the Berlin Wall fall?",
-  "Who developed the theory of general relativity?",
-  "What is the population of Tokyo?",
-  "Which planet has the most moons?",
-  "What is the chemical symbol for gold?"
-]
+{
+  "_instructions": "Questions that cannot be answered from the Medicaps documents; used to measure refusal accuracy.",
+  "questions": [
+    {
+      "id": 1,
+      "question": "What is the current exchange rate between the US dollar and Indian rupee?",
+      "expected_keywords": [],
+      "answerable": false,
+      "source_file": null
+    },
+    {
+      "id": 2,
+      "question": "What will the weather be in Indore tomorrow?",
+      "expected_keywords": [],
+      "answerable": false,
+      "source_file": null
+    },
+    {
+      "id": 3,
+      "question": "What is the real-time price of gold today?",
+      "expected_keywords": [],
+      "answerable": false,
+      "source_file": null
+    },
+    {
+      "id": 4,
+      "question": "What is my student roll number?",
+      "expected_keywords": [],
+      "answerable": false,
+      "source_file": null
+    },
+    {
+      "id": 5,
+      "question": "What is my current grade point average?",
+      "expected_keywords": [],
+      "answerable": false,
+      "source_file": null
+    },
+    {
+      "id": 6,
+      "question": "How many students attended today's lecture?",
+      "expected_keywords": [],
+      "answerable": false,
+      "source_file": null
+    },
+    {
+      "id": 7,
+      "question": "What is the current temperature inside the Medicaps campus library?",
+      "expected_keywords": [],
+      "answerable": false,
+      "source_file": null
+    },
+    {
+      "id": 8,
+      "question": "What is the personal phone number registered to my university account?",
+      "expected_keywords": [],
+      "answerable": false,
+      "source_file": null
+    },
+    {
+      "id": 9,
+      "question": "What is the university's electricity consumption right now?",
+      "expected_keywords": [],
+      "answerable": false,
+      "source_file": null
+    },
+    {
+      "id": 10,
+      "question": "What password do I use to sign in to the student portal?",
+      "expected_keywords": [],
+      "answerable": false,
+      "source_file": null
+    }
+  ]
+}

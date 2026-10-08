@@ -1,33 +1,30 @@
-# Resume RAG
+# Medicaps RAG
 
 ## Live app
 
-[Open the RAG Chatbot](https://my-rag-chatbot-anonymous.streamlit.app)
+[Open the RAG chatbot](https://my-rag-chatbot-anonymous.streamlit.app)
 
 [Railway API](https://my-rag-production.up.railway.app)
 
-## Retrieval chunk-size experiment
+## Documents
 
-Measured on the six eligible resume PDFs in `documents/` using 30 labeled questions (five per PDF). A question counts as a hit when at least one of the top five retrieved chunks comes from the expected PDF and contains all of that question's expected evidence phrases.
+The corpus in `documents/` contains Medicaps University academic, examination, conduct, syllabus, and prospectus PDFs. Some files are scans without extractable text, so they contribute no searchable content until OCR is added.
 
-| Chunk size | Hit rate (hit@5) | Notes |
-|------------|------------------|-------|
-| 300 chars  | 70.0% (21/30)    | Lowest measured retrieval hit rate |
-| 500 chars  | 80.0% (24/30)    | Improved over 300 on this corpus |
-| 800 chars  | 83.3% (25/30)    | Highest measured retrieval hit rate |
+## Evaluation
 
-These are retrieval evidence-match scores, not LLM answer-quality scores. The 30 questions are grounded in this local resume set, so results may differ on other documents or evaluation questions. Each run also checks refusal accuracy against 10 questions in `eval/refusal_questions.json`. Refusal checks run through retrieval and the Groq model, so set `GROQ_API_KEY` in `.env` before running the evaluator. Each run builds its index under `qdrant_db/experiments/chunk_<size>` and does not overwrite the regular local index or use the configured remote Qdrant collection.
+The retrieval evaluation uses 20 answerable questions from `eval/questions.json`. The separate `eval/refusal_questions.json` contains 10 questions that should be refused because their answers are not in the corpus. Retrieval hit rate checks whether one of the top-five retrieved chunks contains every expected keyword. Refusal accuracy checks whether the assistant returns its refusal response.
 
-## Refusal evaluation
-
-| Metric | Result |
-|--------|--------|
-| Refusal accuracy (chunk size 800) | 100.0% (10/10) |
-
-Re-run any setting with:
+Build the local index before evaluating. Refusal checks call Groq, so set `GROQ_API_KEY` in your environment first.
 
 ```powershell
-.\venv\Scripts\python.exe eval/evaluate.py --chunk-size 300
-.\venv\Scripts\python.exe eval/evaluate.py --chunk-size 500
-.\venv\Scripts\python.exe eval/evaluate.py --chunk-size 800
+python -m unittest discover -s tests -v
+python -m app.ingest
+python eval/evaluate.py --min-hit-rate 70 --min-refusal-accuracy 100
+docker build -t medicaps-rag .
 ```
+
+The initial CI gates are a 70% retrieval hit rate and 100% refusal accuracy. The evaluator prints both measured rates and exits with a nonzero status if a requested minimum is missed. Run ingestion again after changing `CHUNK_SIZE`; the evaluator measures the index currently on disk.
+
+GitHub Actions installs dependencies, runs the tests, builds a fresh local index from `documents/`, runs the gated evaluation, and builds the Docker image. Add a repository Actions secret named `GROQ_API_KEY` for the refusal evaluation. Forked pull requests do not receive repository secrets and therefore cannot run the live Groq evaluation.
+
+The workflow validates changes but does not deploy them. Railway's automatic deployment is configured outside this repository; disable that trigger if deployments must wait for GitHub Actions checks.

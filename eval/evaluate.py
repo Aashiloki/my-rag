@@ -12,42 +12,46 @@ and measures two numbers:
    ALL the expected keywords for that question.
 
    Hit rate = (questions where correct chunk found) / (total answerable questions)
-   Target: start at ~61%, reach 89% after hybrid + re-ranking.
+    The CI minimum is configured with --min-hit-rate.
 
 2. REFUSAL ACCURACY
    For unanswerable questions: did the model correctly say
    "INSUFFICIENT_CONTEXT" instead of making something up?
 
    Refusal accuracy = (correct refusals) / (total unanswerable questions)
-   Target: 100% — every out-of-scope question should be refused.
+    The CI minimum is configured with --min-refusal-accuracy.
 
 HOW TO RUN:
   python eval/evaluate.py
 
-  # Test a specific chunk size:
-  CHUNK_SIZE=300 python eval/evaluate.py
-  CHUNK_SIZE=800 python eval/evaluate.py
+    # Enforce CI thresholds:
+    python eval/evaluate.py --min-hit-rate 70 --min-refusal-accuracy 100
 
 OUTPUT:
-  Prints a table of results + final numbers to paste into your README.
+    Prints the measured rates and exits nonzero when a configured minimum is missed.
 """
 
 import os
 import sys
 import json
 import time
+import argparse
 
 # Add project root to path so imports work
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from app.retrieval import retrieve
-from app.chat      import ask, build_prompt
-
 QUESTIONS_PATH = os.path.join(os.path.dirname(__file__), "questions.json")
+REFUSAL_QUESTIONS_PATH = os.path.join(os.path.dirname(__file__), "refusal_questions.json")
 
 
 def load_questions() -> list[dict]:
     with open(QUESTIONS_PATH) as f:
+        data = json.load(f)
+    return data["questions"]
+
+
+def load_refusal_questions() -> list[dict]:
+    with open(REFUSAL_QUESTIONS_PATH) as f:
         data = json.load(f)
     return data["questions"]
 
@@ -73,10 +77,15 @@ def check_hit(retrieved_chunks: list[dict], expected_keywords: list[str]) -> boo
 
 
 def run_evaluation():
-    questions = load_questions()
+    from app.chat import ask
+    from app.retrieval import retrieve
 
-    answerable   = [q for q in questions if q["answerable"]]
-    unanswerable = [q for q in questions if not q["answerable"]]
+    answerable = load_questions()
+    unanswerable = load_refusal_questions()
+    questions = answerable + unanswerable
+
+    if not answerable or not unanswerable:
+        raise ValueError("Evaluation requires answerable and refusal questions.")
 
     print(f"\n{'='*60}")
     print(f"EVALUATION RUN")
@@ -84,8 +93,7 @@ def run_evaluation():
     print(f"{'='*60}\n")
 
     # ── Retrieval hit rate ─────────────────────────────────────────────────────
-    hits        = 0
-    hit_results = []
+    hits = 0
 
     print("RETRIEVAL HIT RATE TEST")
     print("-" * 40)
@@ -96,11 +104,6 @@ def run_evaluation():
         hits   += int(is_hit)
 
         status = "✅ HIT " if is_hit else "❌ MISS"
-        hit_results.append({
-            "id":       q["id"],
-            "question": q["question"][:55],
-            "hit":      is_hit,
-        })
         print(f"  Q{q['id']:02d} {status} | {q['question'][:55]}")
 
         time.sleep(0.1)  # small delay to avoid hammering the embedding model
@@ -110,7 +113,6 @@ def run_evaluation():
 
     # ── Refusal accuracy ───────────────────────────────────────────────────────
     correct_refusals = 0
-    refusal_results  = []
 
     print("REFUSAL ACCURACY TEST")
     print("-" * 40)
@@ -122,11 +124,6 @@ def run_evaluation():
 
         correct_refusals += int(refused)
         status = "✅ REFUSED" if refused else "❌ ANSWERED (bad!)"
-        refusal_results.append({
-            "id":      q["id"],
-            "question": q["question"][:55],
-            "refused": refused,
-        })
         print(f"  Q{q['id']:02d} {status} | {q['question'][:55]}")
 
         time.sleep(0.3)
@@ -134,11 +131,11 @@ def run_evaluation():
     refusal_rate = correct_refusals / len(unanswerable) * 100 if unanswerable else 0
     print(f"\nRefusal accuracy: {correct_refusals}/{len(unanswerable)} = {refusal_rate:.1f}%")
 
-    # ── Final summary (paste into README) ─────────────────────────────────────
+    # ── Final summary ─────────────────────────────────────────────────────────
     chunk_size = os.environ.get("CHUNK_SIZE", "500")
 
     print(f"\n{'='*60}")
-    print("README TABLE ROW (copy this):")
+    print("EVALUATION SUMMARY:")
     print(f"{'='*60}")
     print(f"| chunk_size={chunk_size} | hit_rate={hit_rate:.1f}% | refusal={refusal_rate:.1f}% |")
     print(f"{'='*60}\n")
@@ -146,5 +143,47 @@ def run_evaluation():
     return hit_rate, refusal_rate
 
 
+def threshold_failures(
+    hit_rate: float,
+    refusal_rate: float,
+    min_hit_rate: float | None,
+    min_refusal_accuracy: float | None,
+) -> list[str]:
+    failures = []
+    if min_hit_rate is not None and hit_rate < min_hit_rate:
+        failures.append(f"hit rate {hit_rate:.1f}% is below {min_hit_rate:.1f}%")
+    if min_refusal_accuracy is not None and refusal_rate < min_refusal_accuracy:
+        failures.append(
+            f"refusal accuracy {refusal_rate:.1f}% is below {min_refusal_accuracy:.1f}%"
+        )
+    return failures
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Evaluate retrieval and refusal quality.")
+    parser.add_argument("--min-hit-rate", type=float)
+    parser.add_argument("--min-refusal-accuracy", type=float)
+    args = parser.parse_args()
+
+    for name, value in (
+        ("--min-hit-rate", args.min_hit_rate),
+        ("--min-refusal-accuracy", args.min_refusal_accuracy),
+    ):
+        if value is not None and not 0 <= value <= 100:
+            parser.error(f"{name} must be between 0 and 100")
+
+    hit_rate, refusal_rate = run_evaluation()
+    failures = threshold_failures(
+        hit_rate,
+        refusal_rate,
+        args.min_hit_rate,
+        args.min_refusal_accuracy,
+    )
+    if failures:
+        print("\nEvaluation gate failed: " + "; ".join(failures))
+        return 1
+    return 0
+
+
 if __name__ == "__main__":
-    run_evaluation()
+    raise SystemExit(main())

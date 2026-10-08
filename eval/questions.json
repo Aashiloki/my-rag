@@ -1,41 +1,146 @@
 {
-  "_instructions": "Fill in 30 questions from YOUR documents. Each needs: question, expected_answer (key phrases that should appear in the answer), and answerable (true/false). The 30 questions should be: 20 answerable from your PDFs, 10 unanswerable (to test refusal). Replace all the examples below with real questions from your actual PDFs.",
+  "_instructions": "20 answerable questions grounded in the text-extractable Medicaps PDFs.",
 
   "questions": [
     {
       "id": 1,
-      "question": "What is osmosis?",
-      "expected_keywords": ["water", "membrane", "concentration"],
+      "question": "What attendance is required to be eligible for university examinations?",
+      "expected_keywords": ["75 % attendance", "Theory & practical separately"],
       "answerable": true,
-      "source_file": "biology.pdf"
+      "source_file": "examination_rules_and_regulation_2024.pdf"
     },
     {
       "id": 2,
-      "question": "Define photosynthesis.",
-      "expected_keywords": ["light", "glucose", "chlorophyll"],
+      "question": "What attendance requirement applies to students in the Faculty of Pharmacy?",
+      "expected_keywords": ["80% in each course"],
       "answerable": true,
-      "source_file": "biology.pdf"
+      "source_file": "examination_rules_and_regulation_2024.pdf"
     },
     {
       "id": 3,
-      "question": "What is Newton's second law?",
-      "expected_keywords": ["force", "mass", "acceleration"],
+      "question": "How may attendance shortages be condoned for special reasons such as prolonged illness?",
+      "expected_keywords": ["up to ten percent", "further five percent", "Dean", "Vice-Chancellor"],
       "answerable": true,
-      "source_file": "physics.pdf"
+      "source_file": "examination_rules_and_regulation_2024.pdf"
     },
     {
       "id": 4,
-      "question": "What was the GDP of France in 2023?",
-      "expected_keywords": [],
-      "answerable": false,
-      "source_file": null
+      "question": "What happens if a student attends a course without registering for it?",
+      "expected_keywords": ["No credit shall be assigned", "not registered"],
+      "answerable": true,
+      "source_file": "examination_rules_and_regulation_2024.pdf"
     },
     {
       "id": 5,
-      "question": "Who won the 2024 FIFA World Cup?",
-      "expected_keywords": [],
-      "answerable": false,
-      "source_file": null
+      "question": "When is course registration for students carried out?",
+      "expected_keywords": ["in each semester", "academic calendar notified"],
+      "answerable": true,
+      "source_file": "examination_rules_and_regulation_2024.pdf"
+    },
+    {
+      "id": 6,
+      "question": "Which candidates may be admitted to a university examination?",
+      "expected_keywords": ["regular candidates", "enrolled as a student"],
+      "answerable": true,
+      "source_file": "examination_rules_and_regulation_2024.pdf"
+    },
+    {
+      "id": 7,
+      "question": "How does the examination regulation describe academic credits?",
+      "expected_keywords": ["academic work", "credits accrued", "award of degree"],
+      "answerable": true,
+      "source_file": "examination_rules_and_regulation_2024.pdf"
+    },
+    {
+      "id": 8,
+      "question": "Which academic misconduct does the Medicaps Code of Conduct prohibit?",
+      "expected_keywords": ["Plagiarism, cheating", "strictly prohibited"],
+      "answerable": true,
+      "source_file": "academic_code_of_conduct.pdf"
+    },
+    {
+      "id": 9,
+      "question": "What standard does the Code of Conduct set for individual assignments?",
+      "expected_keywords": ["individual assignments", "personal effort"],
+      "answerable": true,
+      "source_file": "academic_code_of_conduct.pdf"
+    },
+    {
+      "id": 10,
+      "question": "What consequence does the Code of Conduct specify for violations of academic integrity?",
+      "expected_keywords": ["Violations of academic integrity", "disciplinary action"],
+      "answerable": true,
+      "source_file": "academic_code_of_conduct.pdf"
+    },
+    {
+      "id": 11,
+      "question": "How should members of the Medicaps community treat one another?",
+      "expected_keywords": ["respect and dignity", "Discrimination, harassment"],
+      "answerable": true,
+      "source_file": "academic_code_of_conduct.pdf"
+    },
+    {
+      "id": 12,
+      "question": "How should university resources such as laboratories and libraries be used?",
+      "expected_keywords": ["laboratories, libraries", "responsibly and ethically"],
+      "answerable": true,
+      "source_file": "academic_code_of_conduct.pdf"
+    },
+    {
+      "id": 13,
+      "question": "What does the Code of Conduct say about cyberbullying on digital platforms?",
+      "expected_keywords": ["digital platforms responsibly", "cyberbullying"],
+      "answerable": true,
+      "source_file": "academic_code_of_conduct.pdf"
+    },
+    {
+      "id": 14,
+      "question": "What is the university's position on unauthorized access to digital systems?",
+      "expected_keywords": ["Hacking or unauthorized access", "strictly prohibited"],
+      "answerable": true,
+      "source_file": "academic_code_of_conduct.pdf"
+    },
+    {
+      "id": 15,
+      "question": "Where is Medicaps University located, and what kind of university is it?",
+      "expected_keywords": ["multidisciplinary private university", "Central India"],
+      "answerable": true,
+      "source_file": "medicaps_university_brochure_2026.pdf"
+    },
+    {
+      "id": 16,
+      "question": "How many years of academic legacy does Medicaps University describe in its 2026-27 prospectus?",
+      "expected_keywords": ["over 25 years", "academic legacy"],
+      "answerable": true,
+      "source_file": "medicaps_university_brochure_2026.pdf"
+    },
+    {
+      "id": 17,
+      "question": "In what year does the prospectus show Medicaps University being established?",
+      "expected_keywords": ["Establishment of Medicaps University", "2016"],
+      "answerable": true,
+      "source_file": "medicaps_university_brochure_2026.pdf"
+    },
+    {
+      "id": 18,
+      "question": "Which fields of study does the 2026-27 prospectus say Medicaps offers programs in?",
+      "expected_keywords": ["Engineering, Management, Agriculture", "Commerce, Science, Pharmacy, Law, and Arts"],
+      "answerable": true,
+      "source_file": "medicaps_university_brochure_2026.pdf"
+    },
+    {
+      "id": 19,
+      "question": "What degree program and curriculum period are covered by the Computer Science and Engineering syllabus?",
+      "expected_keywords": ["B.Tech. (CSE)", "2024-2028"],
+      "answerable": true,
+      "source_file": "curriculam_and_syllabus_2024_2028.pdf"
+    },
+    {
+      "id": 20,
+      "question": "What does the university's vision statement emphasize?",
+      "expected_keywords": ["teaching, research, innovation, outreach", "global citizen"],
+      "answerable": true,
+      "source_file": "curriculam_and_syllabus_2024_2028.pdf"
     }
   ]
 }
