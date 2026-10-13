@@ -17,7 +17,7 @@ GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 # The legacy Llama names used in older tutorials are no longer available for
 # all accounts. Use a currently accessible Groq model instead.
 MODEL        = "qwen/qwen3.8-27b"
-MAX_TOKENS   = 1024
+MAX_TOKENS   = int(os.getenv("MAX_TOKENS", "400"))
 
 # ─── CACHE ─────────────────────────────────────────────────────────────────────
 # LEARNING: A cache stores the result of expensive operations so repeated
@@ -55,7 +55,7 @@ def get_client() -> Groq:
             "PowerShell: $env:GROQ_API_KEY='gsk_your_key'\n"
             "Then restart uvicorn."
         )
-    return Groq(api_key=GROQ_API_KEY)
+    return Groq(api_key=GROQ_API_KEY, max_retries=5)
 
 
 # ─── PROMPT BUILDER ────────────────────────────────────────────────────────────

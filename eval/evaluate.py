@@ -126,7 +126,7 @@ def run_evaluation():
         status = "✅ REFUSED" if refused else "❌ ANSWERED (bad!)"
         print(f"  Q{q['id']:02d} {status} | {q['question'][:55]}")
 
-        time.sleep(0.3)
+        time.sleep(2)
 
     refusal_rate = correct_refusals / len(unanswerable) * 100 if unanswerable else 0
     print(f"\nRefusal accuracy: {correct_refusals}/{len(unanswerable)} = {refusal_rate:.1f}%")
