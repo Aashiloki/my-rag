@@ -1,26 +1,82 @@
-name: CI
+# LEARNING: GitHub only discovers workflows under .github/workflows/.
+name: CI-CD
 
-on:
+on: # LEARNING: Run checks for pull requests, main pushes, and manual dispatches.
   push:
+    branches: [main]
   pull_request:
+    branches: [main]
   workflow_dispatch:
 
-permissions:
+permissions: # LEARNING: Jobs get read-only access unless a job needs more.
   contents: read
 
+concurrency: # LEARNING: Cancel stale PR work without interrupting main runs.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
-  validate:
+  # Stage 1: static checks and unit tests.
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      qdrant:
+        image: qdrant/qdrant:v1.9.2
+        ports: ["6333:6333"]
+    env:
+      QDRANT_URL: http://localhost:6333
+      GROQ_API_KEY: fake-key-for-tests
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12" # LEARNING: Match the Docker image's Python version.
+          cache: pip # LEARNING: Cache dependency downloads across runs.
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch==2.5.1+cpu --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -r requirements.txt flake8
+
+      - name: Lint for syntax and undefined names
+        run: flake8 main.py streamlit_app.py app eval tests --select=E9,F63,F7,F82 --show-source
+
+      - name: Wait for Qdrant
+        run: |
+          # LEARNING: A started container may not be ready to accept requests yet.
+          for attempt in $(seq 1 30); do
+            curl --fail --silent http://localhost:6333/readyz && exit 0
+            sleep 2
+          done
+          echo "Qdrant never became ready"
+          exit 1
+
+      - name: Run tests
+        # LEARNING: A nonzero test exit makes this check fail.
+        run: python -m unittest discover -s tests -v
+
+  # Stage 2: rebuild the index and enforce retrieval and refusal thresholds.
+  eval:
+    needs: test
+    # LEARNING: Fork PRs cannot access repository secrets; main still requires eval.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    services:
+      qdrant:
+        image: qdrant/qdrant:v1.9.2
+        ports: ["6333:6333"]
     env:
+      QDRANT_URL: http://localhost:6333
       GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
@@ -38,21 +94,97 @@ jobs:
           python -m pip install torch==2.5.1+cpu --index-url https://download.pytorch.org/whl/cpu
           python -m pip install -r requirements.txt
 
-      - name: Run unit tests
-        run: python -m unittest discover -s tests -v
-
       - name: Require Groq evaluation secret
         run: |
           if [ -z "$GROQ_API_KEY" ]; then
-            echo "::error::Add GROQ_API_KEY as a repository Actions secret to run refusal evaluation."
+            echo "::error::Add GROQ_API_KEY as a repository Actions secret for refusal evaluation."
             exit 1
           fi
 
+      - name: Wait for Qdrant
+        run: |
+          for attempt in $(seq 1 30); do
+            curl --fail --silent http://localhost:6333/readyz && exit 0
+            sleep 2
+          done
+          echo "Qdrant never became ready"
+          exit 1
+
       - name: Build local document index
+        # LEARNING: CI's Qdrant service starts empty; seed it from the committed PDFs.
         run: python -m app.ingest
 
       - name: Evaluate retrieval and refusal quality
+        # LEARNING: The evaluator exits nonzero when either minimum is missed.
         run: python eval/evaluate.py --min-hit-rate 70 --min-refusal-accuracy 100
 
-      - name: Build Docker image
-        run: docker build -t medicaps-rag:ci .
+  # Stage 3: build and scan the Docker image before allowing a deployment.
+  build:
+    needs: [test, eval]
+    # LEARNING: Build on fork PRs when eval is skipped, never when a check fails.
+    if: always() && needs.test.result == 'success' && (needs.eval.result == 'success' || needs.eval.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image for scanning
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: medicaps-rag:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Scan image with Trivy
+        # LEARNING: Critical vulnerabilities block deployment.
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: medicaps-rag:ci
+          severity: CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+
+  # Stage 4: deploy only after all checks pass on a push to main.
+  deploy:
+    needs: build
+    # LEARNING: Deployment only runs after checks on a push to main.
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    concurrency:
+      group: deploy-production
+      # LEARNING: Queue production deployments; never cancel one mid-flight.
+      cancel-in-progress: false
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_SERVICE: ${{ vars.RAILWAY_SERVICE }}
+      APP_URL: ${{ vars.APP_URL }}
+    steps:
+      - name: Validate deployment settings
+        run: |
+          test -n "$RAILWAY_TOKEN" || { echo "::error::Set RAILWAY_TOKEN in the production environment."; exit 1; }
+          test -n "$RAILWAY_SERVICE" || { echo "::error::Set RAILWAY_SERVICE as a GitHub Actions variable."; exit 1; }
+          test -n "$APP_URL" || { echo "::error::Set APP_URL as a GitHub Actions variable."; exit 1; }
+
+      - name: Install Railway CLI
+        run: npm install --global @railway/cli
+
+      - name: Deploy to Railway
+        run: railway up --service "$RAILWAY_SERVICE" --ci
+
+      - name: Smoke test health endpoint
+        run: |
+          # LEARNING: Give Railway time to start the new container before failing.
+          APP_URL="${APP_URL%/}"
+          for attempt in $(seq 1 20); do
+            curl --fail --silent "$APP_URL/health" && exit 0
+            echo "Health check not ready (attempt $attempt/20)."
+            sleep 6
+          done
+          echo "Health check failed after deploy"
+          exit 1
