@@ -33,6 +33,13 @@ class EvaluationDatasetTests(unittest.TestCase):
         self.assertTrue(check_hit(chunks, ["attendance", "75 percent"]))
         self.assertFalse(check_hit(chunks, ["attendance", "80 percent"]))
 
+    def test_hit_normalizes_whitespace_in_chunks_and_keywords(self):
+        newline_chunk = [{"text": "Established at Medicaps\nUniversity during 2016."}]
+        double_space_chunk = [{"text": "B.Tech.  (CSE) curriculum 2024-2028."}]
+
+        self.assertTrue(check_hit(newline_chunk, ["Medicaps University", "2016"]))
+        self.assertTrue(check_hit(double_space_chunk, ["B.Tech.\t(CSE)", "2024-2028"]))
+
     def test_threshold_failure_is_reported(self):
         failures = threshold_failures(60, 90, 70, 100)
 
