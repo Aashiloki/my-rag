@@ -85,6 +85,11 @@ def root():
     }
 
 
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
 @app.post("/ingest", response_model=IngestResponse)
 def ingest():
     """Load PDFs → chunk → embed → store in Qdrant + build BM25 index."""

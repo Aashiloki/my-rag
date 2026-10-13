@@ -64,19 +64,22 @@ def check_hit(retrieved_chunks: list[dict], expected_keywords: list[str]) -> boo
     A production evaluation set would have exact chunk IDs, but keyword
     matching is a practical shortcut when building your first eval set.
 
-    Lowercase comparison so "Membrane" matches "membrane".
+    Lowercase and collapse whitespace so extracted PDF line breaks do not
+    prevent a phrase from matching.
     """
     if not expected_keywords:
         return False
 
+    normalized_keywords = [" ".join(kw.lower().split()) for kw in expected_keywords]
+
     for chunk in retrieved_chunks:
-        text_lower = chunk["text"].lower()
-        if all(kw.lower() in text_lower for kw in expected_keywords):
+        normalized_text = " ".join(chunk["text"].lower().split())
+        if all(keyword in normalized_text for keyword in normalized_keywords):
             return True
     return False
 
 
-def run_evaluation():
+def run_evaluation(verbose: bool = False):
     from app.chat import ask
     from app.retrieval import retrieve
 
@@ -106,6 +109,19 @@ def run_evaluation():
         status = "✅ HIT " if is_hit else "❌ MISS"
         print(f"  Q{q['id']:02d} {status} | {q['question'][:55]}")
 
+        if verbose and not is_hit:
+            print(f"      Expected source: {q.get('source_file', 'unknown')}")
+            print(f"      Expected keywords: {q['expected_keywords']}")
+            if chunks:
+                for rank, chunk in enumerate(chunks[:5], start=1):
+                    text = " ".join(chunk.get("text", "").split())[:200]
+                    print(
+                        f"      {rank}. source={chunk.get('source', 'unknown')} "
+                        f"score={chunk.get('score', 'n/a')} text={text}"
+                    )
+            else:
+                print("      No chunks retrieved.")
+
         time.sleep(0.1)  # small delay to avoid hammering the embedding model
 
     hit_rate = hits / len(answerable) * 100 if answerable else 0
@@ -126,7 +142,7 @@ def run_evaluation():
         status = "✅ REFUSED" if refused else "❌ ANSWERED (bad!)"
         print(f"  Q{q['id']:02d} {status} | {q['question'][:55]}")
 
-        time.sleep(0.3)
+        time.sleep(2)
 
     refusal_rate = correct_refusals / len(unanswerable) * 100 if unanswerable else 0
     print(f"\nRefusal accuracy: {correct_refusals}/{len(unanswerable)} = {refusal_rate:.1f}%")
@@ -163,6 +179,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Evaluate retrieval and refusal quality.")
     parser.add_argument("--min-hit-rate", type=float)
     parser.add_argument("--min-refusal-accuracy", type=float)
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Print expected sources, keywords, and retrieved chunks for misses.",
+    )
     args = parser.parse_args()
 
     for name, value in (
@@ -172,7 +193,7 @@ def main() -> int:
         if value is not None and not 0 <= value <= 100:
             parser.error(f"{name} must be between 0 and 100")
 
-    hit_rate, refusal_rate = run_evaluation()
+    hit_rate, refusal_rate = run_evaluation(verbose=args.verbose)
     failures = threshold_failures(
         hit_rate,
         refusal_rate,
