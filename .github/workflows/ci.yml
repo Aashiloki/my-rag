@@ -165,6 +165,9 @@ jobs:
       RAILWAY_SERVICE: ${{ vars.RAILWAY_SERVICE }}
       APP_URL: ${{ vars.APP_URL }}
     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
       - name: Validate deployment settings
         run: |
           test -n "$RAILWAY_TOKEN" || { echo "::error::Set RAILWAY_TOKEN in the production environment."; exit 1; }
